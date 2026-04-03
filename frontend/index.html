@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AttendEase – Login</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 700px 500px at 15% 20%, rgba(61,142,248,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 400px at 85% 80%, rgba(108,92,231,.10) 0%, transparent 70%);
+    }
+    .auth-box {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 420px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 40px 36px;
+      box-shadow: var(--shadow);
+    }
+    .auth-logo { margin-bottom: 28px; }
+    .auth-tabs {
+      display: flex; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 4px; margin-bottom: 24px; gap: 4px;
+    }
+    .auth-tab {
+      flex: 1; padding: 9px; border: none; background: transparent;
+      color: var(--muted); font-family: 'Syne', sans-serif;
+      font-size: .85rem; font-weight: 700; border-radius: 9px;
+      cursor: pointer; transition: background .2s, color .2s;
+    }
+    .auth-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    }
+    .auth-note {
+      text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px;
+    }
+    .auth-note span { color: var(--accent); cursor: pointer; font-weight: 600; }
+    .auth-note span:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Theme toggle -->
+  <button class="theme-btn" id="themeBtn">🌙</button>
+
+  <div class="auth-box anim-fadeup">
+
+    <div class="auth-logo logo-wrap">
+      <div class="logo-icon">🎓</div>
+      <span class="logo-text">AttendEase</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin"    onclick="switchTab('login')">Login</button>
+      <button class="auth-tab"        id="tabRegister" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- Alert -->
+    <div id="authAlert" class="alert-box error"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="field-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="you@email.com"/>
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••"/>
+      </div>
+      <button class="btn-primary full" onclick="doLogin()">Login →</button>
+      <p class="auth-note">No account? <span onclick="switchTab('register')">Register here</span></p>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" style="display:none;">
+      <div class="field-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Your full name"/>
+      </div>
+      <div class="field-group">
+        <label>Email Address</label>
+        <input type="email" id="regEmail" placeholder="you@email.com"/>
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="regPass" placeholder="Min 6 characters"/>
+      </div>
+      <div class="field-group">
+        <label>Confirm Password</label>
+        <input type="password" id="regPass2" placeholder="Repeat password"/>
+      </div>
+      <button class="btn-primary full" onclick="doRegister()">Create Account →</button>
+      <p class="auth-note">Have an account? <span onclick="switchTab('login')">Login</span></p>
+    </div>
+
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

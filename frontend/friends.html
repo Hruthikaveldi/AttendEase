@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AttendEase – Friends</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <style>
+    /* ── FRIENDS PAGE SPECIFIC ── */
+    .search-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .search-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .search-row {
+      display: flex; gap: 12px; align-items: center;
+    }
+    .search-row input {
+      flex: 1; background: var(--surface);
+      border: 1.5px solid var(--border); border-radius: 11px;
+      padding: 11px 16px; color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .95rem; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search-row input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(61,142,248,.13);
+    }
+    .search-row input::placeholder { color: var(--muted); }
+
+    /* ── TABS ── */
+    .tab-row {
+      display: flex; gap: 8px; margin-bottom: 20px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 4px;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px; border: none; background: transparent;
+      color: var(--muted); font-family: 'Syne', sans-serif;
+      font-size: .85rem; font-weight: 700; border-radius: 9px;
+      cursor: pointer; transition: background .2s, color .2s;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    }
+
+    /* ── LEADERBOARD ── */
+    .leaderboard { display: flex; flex-direction: column; gap: 12px; }
+
+    .lb-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px;
+      transition: box-shadow .2s, transform .2s;
+      animation: slideIn .3s ease both;
+      position: relative; overflow: hidden;
+    }
+    .lb-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
+    .lb-card.rank-1 { border-color: #f9c74f; }
+    .lb-card.rank-2 { border-color: #c0c0c0; }
+    .lb-card.rank-3 { border-color: #cd7f32; }
+
+    .rank-badge {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .rank-1 .rank-badge { background: rgba(249,199,79,.2);  color: #f9c74f; }
+    .rank-2 .rank-badge { background: rgba(192,192,192,.2); color: #c0c0c0; }
+    .rank-3 .rank-badge { background: rgba(205,127,50,.2);  color: #cd7f32; }
+    .rank-n .rank-badge { background: var(--surface); color: var(--muted); }
+
+    .lb-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
+      color: #fff; flex-shrink: 0;
+    }
+    .lb-avatar.me-avatar { background: linear-gradient(135deg, var(--green), var(--accent)); }
+
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name {
+      font-family: 'Syne', sans-serif; font-size: .95rem; font-weight: 700;
+      color: var(--text); margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .me-tag {
+      font-size: 10px; background: rgba(0,212,170,.15);
+      color: var(--green); border: 1px solid rgba(0,212,170,.25);
+      border-radius: 20px; padding: 1px 8px; font-weight: 600;
+    }
+    .lb-prog-row { display: flex; align-items: center; gap: 10px; }
+    .lb-prog-wrap {
+      flex: 1; height: 6px; border-radius: 50px;
+      background: var(--surface); overflow: hidden; border: 1px solid var(--border);
+    }
+    .lb-prog-fill { height: 100%; border-radius: 50px; transition: width .8s ease; }
+    .lb-pct {
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800;
+      min-width: 44px; text-align: right;
+    }
+    .lb-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .lb-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ── FRIEND DETAIL MODAL ── */
+    .friend-modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .friend-modal-overlay.open { display: flex; }
+    .friend-modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px; width: 100%; max-width: 500px;
+      box-shadow: var(--shadow); animation: fadeUp .3s ease;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .friend-modal-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+    }
+    .fm-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: #fff;
+      flex-shrink: 0;
+    }
+    .fm-name { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; }
+    .fm-email { font-size: .85rem; color: var(--muted); margin-top: 3px; }
+    .fm-close {
+      margin-left: auto; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 12px; color: var(--muted);
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .course-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .course-row:last-child { border-bottom: none; }
+    .course-row-name { flex: 1; font-size: .88rem; font-weight: 600; color: var(--text2); }
+    .course-row-bar { flex: 1; }
+
+    /* ── REQUESTS CARD ── */
+    .request-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 18px;
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 10px; animation: slideIn .3s ease both;
+    }
+    .req-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--red));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; color: #fff;
+    }
+    .req-info { flex: 1; }
+    .req-name { font-weight: 600; font-size: .9rem; color: var(--text); }
+    .req-email { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .req-actions { display: flex; gap: 6px; }
+    .btn-accept {
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid rgba(0,212,170,.3);
+      background: rgba(0,212,170,.1); color: var(--green);
+      font-family: 'Plus Jakarta Sans', sans-serif; transition: background .2s;
+    }
+    .btn-accept:hover { background: rgba(0,212,170,.2); }
+    .btn-reject {
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid rgba(242,92,105,.25);
+      background: rgba(242,92,105,.08); color: var(--red);
+      font-family: 'Plus Jakarta Sans', sans-serif; transition: background .2s;
+    }
+    .btn-reject:hover { background: rgba(242,92,105,.18); }
+
+    /* ── DEMO NOTE ── */
+    .demo-note {
+      background: rgba(249,199,79,.08); border: 1px solid rgba(249,199,79,.2);
+      border-radius: 12px; padding: 12px 16px;
+      font-size: 12px; color: var(--yellow); margin-bottom: 20px;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+
+    /* ── TABS CONTENT ── */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<button class="theme-btn" id="themeBtn">🌙</button>
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="logo-wrap">
+    <button class="icon-btn hamburger" id="hamburger">☰</button>
+    <div class="logo-icon">🎓</div>
+    <span class="logo-text">AttendEase</span>
+  </div>
+  <div class="topbar-right">
+    <div class="user-pill">
+      <div class="user-avatar" id="topAvatar">U</div>
+      <span id="topName">User</span>
+    </div>
+    <button class="icon-btn" onclick="doLogout()" title="Logout">🚪</button>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-label">Menu</div>
+    <button class="nav-item" onclick="goTo('dashboard.html')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </button>
+    <button class="nav-item" onclick="goTo('dashboard.html')">
+      <span class="nav-icon">📚</span> My Courses
+    </button>
+    <button class="nav-item" onclick="goTo('dashboard.html')">
+      <span class="nav-icon">📊</span> Analytics
+    </button>
+    <button class="nav-item active">
+      <span class="nav-icon">👥</span> Friends
+    </button>
+    <div class="nav-divider"></div>
+    <div class="nav-label">Account</div>
+    <button class="nav-item" onclick="goTo('dashboard.html')">
+      <span class="nav-icon">👤</span> Profile
+    </button>
+    <button class="nav-item" onclick="doLogout()">
+      <span class="nav-icon">🚪</span> Logout
+    </button>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <h1>Friends & Leaderboard 👥</h1>
+      <p>Compare attendance with friends and see who's winning!</p>
+    </div>
+
+    <!-- Demo note (shows when backend not connected) -->
+    <div class="demo-note" id="demoNote">
+      ⚡ <span><strong>Demo Mode:</strong> Running with sample data. Connect the Node.js backend to use real friend requests and live comparison!</span>
+    </div>
+
+    <!-- Send Friend Request -->
+    <div class="search-card">
+      <div class="section-title" style="margin-bottom:14px;"><span class="dot"></span>Add a Friend</div>
+      <div class="search-row">
+        <input type="email" id="friendEmail" placeholder="Enter friend's email address..."/>
+        <button class="btn-primary" onclick="sendRequest()" style="white-space:nowrap;">Send Request 📩</button>
+      </div>
+      <div id="requestAlert" class="alert-box error" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+      <button class="tab-btn" onclick="switchTab('requests')">📩 Requests <span id="reqBadge"></span></button>
+      <button class="tab-btn" onclick="switchTab('myfriends')">👤 My Friends</button>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div id="tab-leaderboard" class="tab-content active">
+      <div class="leaderboard" id="leaderboardList"></div>
+    </div>
+
+    <!-- REQUESTS TAB -->
+    <div id="tab-requests" class="tab-content">
+      <div id="requestsList"></div>
+    </div>
+
+    <!-- MY FRIENDS TAB -->
+    <div id="tab-myfriends" class="tab-content">
+      <div id="myFriendsList"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-items">
+    <button class="mob-btn" onclick="goTo('dashboard.html')"><span class="mob-icon">🏠</span><span>Home</span></button>
+    <button class="mob-btn" onclick="goTo('dashboard.html')"><span class="mob-icon">📚</span><span>Courses</span></button>
+    <button class="mob-btn active"><span class="mob-icon">👥</span><span>Friends</span></button>
+    <button class="mob-btn" onclick="goTo('dashboard.html')"><span class="mob-icon">👤</span><span>Profile</span></button>
+  </div>
+</nav>
+
+<!-- FRIEND DETAIL MODAL -->
+<div class="friend-modal-overlay" id="friendModal">
+  <div class="friend-modal">
+    <div class="friend-modal-header">
+      <div class="fm-avatar" id="fmAvatar">F</div>
+      <div>
+        <div class="fm-name" id="fmName">—</div>
+        <div class="fm-email" id="fmEmail">—</div>
+      </div>
+      <button class="fm-close" onclick="closeFriendModal()">✕ Close</button>
+    </div>
+    <div class="section-title" style="margin-bottom:12px;"><span class="dot"></span>Their Courses</div>
+    <div id="fmCourses"></div>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script>
+/* ══════════════════════════════════
+   FRIENDS PAGE — friends.js (inline)
+══════════════════════════════════ */
+
+// ── DEMO DATA (used when backend not connected) ──
+const DEMO_FRIENDS = [
+  {
+    id: 1, name: "Priya Sharma", email: "priya@example.com",
+    overallPct: 88.5, totalCourses: 6, safeCourses: 6,
+    courses: [
+      { name:"Data Structures",   pctTotal: 92 },
+      { name:"DBMS",              pctTotal: 85 },
+      { name:"OS",                pctTotal: 88 },
+      { name:"Computer Networks", pctTotal: 90 },
+      { name:"Full Stack Dev",    pctTotal: 82 },
+      { name:"DevOps",            pctTotal: 94 },
+    ]
+  },
+  {
+    id: 2, name: "Rahul Verma", email: "rahul@example.com",
+    overallPct: 74.2, totalCourses: 6, safeCourses: 3,
+    courses: [
+      { name:"Data Structures",   pctTotal: 78 },
+      { name:"DBMS",              pctTotal: 65 },
+      { name:"OS",                pctTotal: 80 },
+      { name:"Computer Networks", pctTotal: 72 },
+      { name:"Full Stack Dev",    pctTotal: 70 },
+      { name:"DevOps",            pctTotal: 80 },
+    ]
+  },
+  {
+    id: 3, name: "Ananya Reddy", email: "ananya@example.com",
+    overallPct: 91.0, totalCourses: 6, safeCourses: 6,
+    courses: [
+      { name:"Data Structures",   pctTotal: 95 },
+      { name:"DBMS",              pctTotal: 90 },
+      { name:"OS",                pctTotal: 88 },
+      { name:"Computer Networks", pctTotal: 92 },
+      { name:"Full Stack Dev",    pctTotal: 89 },
+      { name:"DevOps",            pctTotal: 92 },
+    ]
+  },
+  {
+    id: 4, name: "Karthik Nair", email: "karthik@example.com",
+    overallPct: 60.5, totalCourses: 6, safeCourses: 1,
+    courses: [
+      { name:"Data Structures",   pctTotal: 55 },
+      { name:"DBMS",              pctTotal: 62 },
+      { name:"OS",                pctTotal: 75 },
+      { name:"Computer Networks", pctTotal: 58 },
+      { name:"Full Stack Dev",    pctTotal: 60 },
+      { name:"DevOps",            pctTotal: 53 },
+    ]
+  },
+];
+
+const DEMO_REQUESTS = [
+  { _id: "r1", from: { name:"Deepika Singh", email:"deepika@example.com" } },
+  { _id: "r2", from: { name:"Arjun Mehta",  email:"arjun@example.com"   } },
+];
+
+// ── STATE ──
+let friendsData   = [];
+let requestsData  = [];
+let currentTab    = 'leaderboard';
+let backendOnline = false;
+// API calls handled via utils.js
+
+// ── BOOT ──
+document.addEventListener('DOMContentLoaded', async function () {
+  applyTheme();
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+  document.getElementById('friendModal').addEventListener('click', function(e) {
+    if (e.target === this) closeFriendModal();
+  });
+
+  const user = getCurrentUser();
+  if (!user) { window.location.href = 'index.html'; return; }
+
+  // Set user info
+  document.getElementById('topAvatar').textContent = getInitials(user.name);
+  document.getElementById('topName').textContent   = user.name.split(' ')[0];
+
+  // Try to fetch from backend, fall back to demo
+  await loadData(user);
+  renderAll();
+});
+
+// ── LOAD DATA ──
+async function loadData(user) {
+  // If there's no token, user is not logged in — skip API calls entirely
+  const token = getToken();
+  if (!token) {
+    console.warn('No auth token found. Please log in again.');
+    friendsData  = DEMO_FRIENDS;
+    requestsData = DEMO_REQUESTS;
+    backendOnline = false;
+    return;
+  }
+
+  try {
+    [friendsData, requestsData] = await Promise.all([
+      apiGetFriends(),
+      apiGetFriendRequests(),
+    ]);
+    backendOnline = true;
+    document.getElementById('demoNote').style.display = 'none';
+  } catch(e) {
+    // Log the REAL error so you can debug it in DevTools → Console
+    console.error('🔴 Backend error (real reason):', e.message, e);
+    document.getElementById('demoNote').querySelector('span').innerHTML =
+      `<strong>Demo Mode:</strong> Could not reach backend — <code>${e.message}</code>. Check console for details.`;
+    friendsData  = DEMO_FRIENDS;
+    requestsData = DEMO_REQUESTS;
+    backendOnline = false;
+  }
+}
+
+// ── SEND REQUEST ──
+async function sendRequest() {
+  const email = (document.getElementById('friendEmail').value || '').trim();
+  hideAlert('requestAlert');
+  if (!email || !email.includes('@')) { showAlert('requestAlert','⚠️ Please enter a valid email!'); return; }
+  try {
+    const data = await apiSendFriendRequest(email);
+    showAlert('requestAlert','✅ ' + data.message, 'success');
+    document.getElementById('friendEmail').value = '';
+    setTimeout(() => hideAlert('requestAlert'), 2500);
+  } catch(err) {
+    showAlert('requestAlert','❌ ' + (err.message || 'Could not send request.'));
+  }
+}
+
+// ── RESPOND TO REQUEST ──
+async function respondRequest(requestId, action) {
+  try {
+    await apiRespondFriendRequest(requestId, action);
+    await loadData(getCurrentUser());
+    renderAll();
+  } catch(err) {
+    requestsData = requestsData.filter(r => r._id !== requestId);
+    renderAll();
+  }
+}
+
+// ── REMOVE FRIEND ──
+async function removeFriend(friendId) {
+  if (!confirm('Remove this friend?')) return;
+  try {
+    await apiRemoveFriend(friendId);
+    await loadData(getCurrentUser());
+  } catch(err) {
+    friendsData = friendsData.filter(f => (f.id||f._id) !== friendId);
+  }
+  renderAll();
+}
+
+// ── RENDER ALL ──
+function renderAll() {
+  renderLeaderboard();
+  renderRequests();
+  renderMyFriends();
+
+  // Badge count
+  const badge = document.getElementById('reqBadge');
+  badge.textContent = requestsData.length > 0 ? ` (${requestsData.length})` : '';
+}
+
+// ── LEADERBOARD ──
+function renderLeaderboard() {
+  const user = getCurrentUser();
+  const courses = getCourses();
+  const heldTotal = courses.reduce((s,c) => s + c.held, 0);
+  const attTotal  = courses.reduce((s,c) => s + c.attended, 0);
+  const myPct     = heldTotal > 0 ? parseFloat((attTotal / heldTotal * 100).toFixed(1)) : 0;
+
+  // Build combined list (me + friends)
+  const all = [
+    { id:'me', name: user.name, email: user.email, overallPct: myPct, isMe: true, totalCourses: courses.length, safeCourses: courses.filter(c => calcStats(c).pctTotal >= 75).length },
+    ...friendsData.map(f => ({ ...f, isMe: false }))
+  ];
+  all.sort((a,b) => b.overallPct - a.overallPct);
+
+  const el = document.getElementById('leaderboardList');
+  if (all.length <= 1) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">👥</div><p>No friends yet!<br/>Add friends above to see the leaderboard.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = all.map((f, i) => {
+    const rank   = i + 1;
+    const rkCls  = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-n';
+    const rkIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+    const pctClr = f.overallPct >= 75 ? 'var(--green)' : f.overallPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const barClr = f.overallPct >= 75 ? 'linear-gradient(90deg,#00d4aa,#3d8ef8)' : f.overallPct >= 60 ? 'linear-gradient(90deg,#f9c74f,#f4845f)' : 'linear-gradient(90deg,#f25c69,#f4845f)';
+    const initials = getInitials(f.name);
+    const fId = f.id || f._id || 'me';
+
+    return `
+    <div class="lb-card ${rkCls}">
+      <div class="rank-badge">${rkIcon}</div>
+      <div class="lb-avatar ${f.isMe ? 'me-avatar' : ''}">${initials}</div>
+      <div class="lb-info">
+        <div class="lb-name">
+          ${f.name}
+          ${f.isMe ? '<span class="me-tag">You</span>' : ''}
+        </div>
+        <div class="lb-prog-row">
+          <div class="lb-prog-wrap">
+            <div class="lb-prog-fill" style="width:${Math.min(f.overallPct,100)}%;background:${barClr}"></div>
+          </div>
+          <div class="lb-pct" style="color:${pctClr}">${f.overallPct}%</div>
+        </div>
+        <div class="lb-sub">${f.totalCourses} courses · ${f.safeCourses} safe (≥75%)</div>
+      </div>
+      ${!f.isMe ? `
+      <div class="lb-actions">
+        <button class="btn-sm" onclick="openFriendModal(${JSON.stringify(f).split('"').join('&quot;')})">View</button>
+        <button class="btn-sm danger" onclick="removeFriend('${fId}')">✕</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── REQUESTS ──
+function renderRequests() {
+  const el = document.getElementById('requestsList');
+  if (requestsData.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">📩</div><p>No pending friend requests!</p></div>`;
+    return;
+  }
+  el.innerHTML = requestsData.map(r => {
+    const from = r.from || r;
+    const initials = getInitials(from.name || 'F');
+    return `
+    <div class="request-card">
+      <div class="req-avatar">${initials}</div>
+      <div class="req-info">
+        <div class="req-name">${from.name}</div>
+        <div class="req-email">${from.email}</div>
+      </div>
+      <div class="req-actions">
+        <button class="btn-accept" onclick="respondRequest('${r._id}','accept')">✅ Accept</button>
+        <button class="btn-reject" onclick="respondRequest('${r._id}','reject')">✕ Reject</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MY FRIENDS ──
+function renderMyFriends() {
+  const el = document.getElementById('myFriendsList');
+  if (friendsData.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">👥</div><p>No friends added yet.<br/>Send a request above!</p></div>`;
+    return;
+  }
+  el.innerHTML = friendsData.map(f => {
+    const pctClr = f.overallPct >= 75 ? 'var(--green)' : f.overallPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const initials = getInitials(f.name);
+    const fId = f.id || f._id;
+    return `
+    <div class="request-card">
+      <div class="req-avatar" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">${initials}</div>
+      <div class="req-info">
+        <div class="req-name">${f.name}</div>
+        <div class="req-email">${f.email} · <span style="color:${pctClr};font-weight:600">${f.overallPct}% attendance</span></div>
+      </div>
+      <div class="req-actions">
+        <button class="btn-sm" onclick="openFriendModal(${JSON.stringify(f).split('"').join('&quot;')})">📊 View</button>
+        <button class="btn-sm danger" onclick="removeFriend('${fId}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FRIEND DETAIL MODAL ──
+function openFriendModal(f) {
+  if (typeof f === 'string') f = JSON.parse(f.split('&quot;').join('"'));
+  document.getElementById('fmAvatar').textContent = getInitials(f.name);
+  document.getElementById('fmName').textContent   = f.name;
+  document.getElementById('fmEmail').textContent  = f.email;
+
+  const coursesEl = document.getElementById('fmCourses');
+  if (!f.courses || f.courses.length === 0) {
+    coursesEl.innerHTML = '<p style="color:var(--muted);font-size:13px;">No course data available.</p>';
+  } else {
+    coursesEl.innerHTML = f.courses.map(c => {
+      const pctClr = c.pctTotal >= 75 ? 'var(--green)' : c.pctTotal >= 60 ? 'var(--yellow)' : 'var(--red)';
+      const barClr = c.pctTotal >= 75 ? 'linear-gradient(90deg,#00d4aa,#3d8ef8)' : c.pctTotal >= 60 ? 'linear-gradient(90deg,#f9c74f,#f4845f)' : 'linear-gradient(90deg,#f25c69,#f4845f)';
+      return `
+      <div class="course-row">
+        <div class="course-row-name">${c.name}</div>
+        <div class="course-row-bar">
+          <div class="lb-prog-wrap">
+            <div class="lb-prog-fill" style="width:${Math.min(c.pctTotal,100)}%;background:${barClr}"></div>
+          </div>
+        </div>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:${pctClr};min-width:38px;text-align:right;">${c.pctTotal}%</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('friendModal').classList.add('open');
+}
+function closeFriendModal() { document.getElementById('friendModal').classList.remove('open'); }
+
+// ── TAB SWITCHING ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['leaderboard','requests','myfriends'][i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ── NAVIGATION ──
+function goTo(page) { window.location.href = page; }
+function doLogout() { clearCurrentUser(); window.location.href = 'index.html'; }
+</script>
+</body>
+</html>
