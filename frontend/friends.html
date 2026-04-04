@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -325,6 +325,7 @@
   </div>
 </div>
 
+<script src="js/theme.js"></script>
 <script src="js/utils.js"></script>
 <script>
 /* ══════════════════════════════════
@@ -398,7 +399,7 @@ let backendOnline = false;
 // ── BOOT ──
 document.addEventListener('DOMContentLoaded', async function () {
   applyTheme();
-  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  document.getElementById('themeBtn').addEventListener('click', openThemePanel);
   document.getElementById('hamburger').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('open');
   });

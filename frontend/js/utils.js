@@ -14,20 +14,8 @@ const PALETTE = [
   ['#5cf7d4','#3d8ef8'],
 ];
 
-// ── THEME ──
+// ── THEME — handled by theme.js ──
 function getTheme() { return localStorage.getItem('ae_theme') || 'dark'; }
-function applyTheme() {
-  const t = getTheme();
-  document.documentElement.setAttribute('data-theme', t);
-  const btn = document.getElementById('themeBtn');
-  if (btn) btn.textContent = t === 'dark' ? '🌙' : '☀️';
-}
-function toggleTheme() {
-  const t = getTheme() === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('ae_theme', t);
-  applyTheme();
-  if (typeof onThemeChange === 'function') onThemeChange();
-}
 
 // ── TOKEN & USER ──
 function getToken()          { return localStorage.getItem('ae_token') || null; }

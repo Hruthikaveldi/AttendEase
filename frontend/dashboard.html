@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -285,6 +285,7 @@
 </div>
 
 <!-- SCRIPTS — ORDER MATTERS! -->
+<script src="js/theme.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/courses.js"></script>
 <script src="js/charts.js"></script>
@@ -292,11 +293,11 @@
 /* ── BOOT ── */
 document.addEventListener('DOMContentLoaded', async function () {
   applyTheme();
-  document.getElementById('themeBtn').addEventListener('click', function() {
-    toggleTheme();
+  document.getElementById('themeBtn').addEventListener('click', openThemePanel);
+  window.onThemeChange = function() {
     refreshCharts();
     if (document.getElementById('pg-analytics').classList.contains('active')) renderAnalyticsChart();
-  });
+  };
 
   // Check auth
   const user = getCurrentUser();
