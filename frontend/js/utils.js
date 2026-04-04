@@ -3,7 +3,7 @@
 //   Shared helpers + API layer
 // ═══════════════════════════════
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = '/api';
 
 const PALETTE = [
   ['#3d8ef8','#6c5ce7'],
