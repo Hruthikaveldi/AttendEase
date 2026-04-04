@@ -14,20 +14,9 @@ const PALETTE = [
   ['#5cf7d4','#3d8ef8'],
 ];
 
-// ── THEME ──
+// ── THEME — handled by theme.js ──
+// applyTheme(), toggleTheme(), openThemePanel() are in theme.js
 function getTheme() { return localStorage.getItem('ae_theme') || 'dark'; }
-function applyTheme() {
-  const t = getTheme();
-  document.documentElement.setAttribute('data-theme', t);
-  const btn = document.getElementById('themeBtn');
-  if (btn) btn.textContent = t === 'dark' ? '🌙' : '☀️';
-}
-function toggleTheme() {
-  const t = getTheme() === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('ae_theme', t);
-  applyTheme();
-  if (typeof onThemeChange === 'function') onThemeChange();
-}
 
 // ── TOKEN & USER ──
 function getToken()          { return localStorage.getItem('ae_token') || null; }
@@ -96,38 +85,20 @@ function calcStats(c) {
   const pctHeld  = c.held>0  ? (c.attended/c.held *100) : 0;
   const pctTotal = c.total>0 ? (c.attended/c.total*100) : 0;
   const remaining = c.total - c.held;
-  // Bunk logic based on HELD classes (what actually happened)
-  // How many of the remaining classes can you skip and still stay >=75% by held?
-  // If you attend x more out of `remaining`, pctHeld = (attended+x)/(held+x) >= 0.75
-  // Solve: attended+x >= 0.75*(held+x) → x*(1-0.75) >= 0.75*held - attended
-  // → x >= (0.75*held - attended) / 0.25
-  const minNeeded = Math.max(0, Math.ceil((0.75 * c.held - c.attended) / 0.25));
-  const canBunk   = Math.max(0, remaining - minNeeded);
-  // For "cannot recover" check: even attending all remaining, can we hit 75%?
-  const maxPctHeld = (c.held + remaining) > 0 ? ((c.attended + remaining) / (c.held + remaining) * 100) : 0;
-  return { pctHeld, pctTotal, remaining, canBunk, minNeeded, maxPctHeld };
+  const needed75  = Math.ceil(0.75*c.total);
+  const canBunk   = c.attended>=needed75 ? remaining : remaining-(needed75-c.attended);
+  return { pctHeld, pctTotal, remaining, needed75, canBunk };
 }
 function pctClass(p)      { return p>=75?'badge-green':p>=60?'badge-yellow':'badge-red'; }
 function barGradient(p)   { return p>=75?'linear-gradient(90deg,#00d4aa,#3d8ef8)':p>=60?'linear-gradient(90deg,#f9c74f,#f4845f)':'linear-gradient(90deg,#f25c69,#f4845f)'; }
 function barSolidColor(p) { return p>=75?'#00d4aa':p>=60?'#f9c74f':'#f25c69'; }
 
 function bunkMessage(c,s) {
-  // Semester complete
-  if (s.remaining === 0) {
-    const cls = s.pctHeld>=75?'hi-green':s.pctHeld>=60?'hi-yellow':'hi-red';
-    return `Semester complete. Final: <span class="${cls}">${s.pctHeld.toFixed(1)}%</span> by held.`;
-  }
-  // Already safe by held attendance
-  if (s.pctHeld >= 75) {
-    if (s.canBunk > 0)
-      return `✅ You can bunk up to <span class="hi-green">${s.canBunk} more class${s.canBunk>1?'es':''}</span> out of ${s.remaining} remaining and still stay above 75%.`;
-    return `✅ Safe at ${s.pctHeld.toFixed(1)}%! Attend <span class="hi-yellow">all remaining</span> classes to stay above 75%.`;
-  }
-  // Cannot recover even attending everything
-  if (s.maxPctHeld < 75)
-    return `🚨 <span class="hi-red">Cannot reach 75%</span> even attending all ${s.remaining} remaining. Max possible: ${s.maxPctHeld.toFixed(1)}%`;
-  // Need to attend some more
-  return `⚠️ Must attend <span class="hi-yellow">${s.minNeeded} more class${s.minNeeded>1?'es':''}</span> out of ${s.remaining} remaining to reach 75%.`;
+  if(s.remaining===0){ const cls=s.pctTotal>=75?'hi-green':s.pctTotal>=60?'hi-yellow':'hi-red'; return `Semester complete. Final: <span class="${cls}">${s.pctTotal.toFixed(1)}%</span>`; }
+  if(s.pctTotal>=75){ return s.canBunk>0?`✅ You can bunk up to <span class="hi-green">${s.canBunk} more class${s.canBunk>1?'es':''}</span> and still stay above 75%.`:`⚠️ Exactly at 75%! Attend <span class="hi-yellow">all remaining</span> classes to stay safe.`; }
+  const must=s.needed75-c.attended;
+  if(must>s.remaining) return `🚨 <span class="hi-red">Cannot reach 75%</span> even attending all ${s.remaining} remaining. Max: ${((c.attended+s.remaining)/c.total*100).toFixed(1)}%`;
+  return `⚠️ Must attend <span class="hi-yellow">${must} more class${must>1?'es':''}</span> out of ${s.remaining} remaining to reach 75%.`;
 }
 
 // ── ALERTS ──
