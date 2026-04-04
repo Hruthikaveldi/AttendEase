@@ -220,16 +220,81 @@
     <div id="pg-profile" class="subpage">
       <div class="page-header">
         <h1>Profile 👤</h1>
-        <p>Your account information.</p>
+        <p>Your account information and settings.</p>
       </div>
-      <div class="profile-header">
+
+      <!-- Profile Header Card -->
+      <div class="profile-header" style="position:relative;">
         <div class="profile-avatar" id="profileAvatar">U</div>
-        <div>
+        <div style="flex:1;">
           <div class="profile-name" id="profileName">—</div>
           <div class="profile-email" id="profileEmail">—</div>
+          <div style="margin-top:8px;">
+            <span id="profileBadge" style="font-size:11px;padding:3px 10px;border-radius:20px;
+              font-weight:700;background:rgba(0,212,170,.15);color:var(--green);
+              border:1px solid rgba(0,212,170,.3);">🎓 Student</span>
+          </div>
         </div>
       </div>
-      <div class="profile-info-grid" id="profileStats"></div>
+
+      <!-- Stats Grid -->
+      <div class="profile-info-grid" id="profileStats" style="margin-bottom:20px;"></div>
+
+      <!-- Change Password Card -->
+      <div class="section-card" style="margin-bottom:20px;">
+        <div class="section-title"><span class="dot"></span>🔒 Change Password</div>
+        <div id="pwAlert" class="alert-box error"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="field-group" style="margin:0;">
+            <label>New Password</label>
+            <div style="position:relative;">
+              <input type="password" id="newPass" placeholder="Min 6 characters"
+                style="width:100%;padding-right:44px;box-sizing:border-box;"/>
+              <button type="button" onclick="togglePwVis('newPass',this)"
+                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                  background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">👁️</button>
+            </div>
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label>Confirm New Password</label>
+            <div style="position:relative;">
+              <input type="password" id="newPass2" placeholder="Repeat new password"
+                style="width:100%;padding-right:44px;box-sizing:border-box;"/>
+              <button type="button" onclick="togglePwVis('newPass2',this)"
+                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                  background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">👁️</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <button class="btn-primary" onclick="doChangePassword()">Update Password 🔒</button>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="section-card" style="border-color:rgba(242,92,105,.2);">
+        <div class="section-title" style="color:var(--red);"><span class="dot"
+          style="background:var(--red);"></span>⚠️ Danger Zone</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+          These actions are permanent and cannot be undone.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="confirmClearCourses()"
+            style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;
+              cursor:pointer;border:1px solid rgba(242,92,105,.3);
+              background:rgba(242,92,105,.08);color:var(--red);
+              font-family:'Plus Jakarta Sans',sans-serif;">
+            🗑️ Clear All Courses
+          </button>
+          <button onclick="doLogout()"
+            style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;
+              cursor:pointer;border:1px solid var(--border);
+              background:var(--surface);color:var(--muted);
+              font-family:'Plus Jakarta Sans',sans-serif;">
+            🚪 Logout
+          </button>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -294,10 +359,7 @@
 document.addEventListener('DOMContentLoaded', async function () {
   applyTheme();
   document.getElementById('themeBtn').addEventListener('click', openThemePanel);
-  window.onThemeChange = function() {
-    refreshCharts();
-    if (document.getElementById('pg-analytics').classList.contains('active')) renderAnalyticsChart();
-  };
+  window.onThemeChange = function() { refreshCharts(); if (document.getElementById('pg-analytics').classList.contains('active')) renderAnalyticsChart(); };
 
   // Check auth
   const user = getCurrentUser();
@@ -506,21 +568,69 @@ function runBunkPlanner() {
 /* ── RENDER PROFILE ── */
 function renderProfile() {
   const user    = getCurrentUser();
-  const users   = getUsers();
-  const joined  = users[user?.email]?.joined || '—';
   const courses = getCourses();
   const att     = courses.reduce((s,c) => s + c.attended, 0);
   const held    = courses.reduce((s,c) => s + c.held,     0);
-  const safe    = courses.filter(c => calcStats(c).pctTotal >= 75).length;
+  const total   = courses.reduce((s,c) => s + c.total,    0);
+  const absent  = courses.reduce((s,c) => s + (c.held - c.attended), 0);
+  const safe    = courses.filter(c => calcStats(c).pctHeld >= 75).length;
+  const danger  = courses.filter(c => calcStats(c).pctHeld < 60).length;
   const pct     = held > 0 ? (att / held * 100).toFixed(1) : '0.0';
+  const pctClr  = pct >= 75 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
 
   document.getElementById('profileStats').innerHTML = `
-    <div class="info-card"><div class="lbl">Member Since</div><div class="val">📅 ${joined}</div></div>
     <div class="info-card"><div class="lbl">Total Courses</div><div class="val">📚 ${courses.length}</div></div>
     <div class="info-card"><div class="lbl">Classes Attended</div><div class="val">✅ ${att}</div></div>
-    <div class="info-card"><div class="lbl">Overall Attendance</div><div class="val">📈 ${pct}%</div></div>
+    <div class="info-card"><div class="lbl">Classes Absent</div><div class="val">❌ ${absent}</div></div>
+    <div class="info-card"><div class="lbl">Overall Attendance</div>
+      <div class="val" style="color:${pctClr}">📈 ${pct}%</div></div>
     <div class="info-card"><div class="lbl">Safe Courses (≥75%)</div><div class="val">🎯 ${safe} / ${courses.length}</div></div>
+    <div class="info-card"><div class="lbl">At Risk Courses (<60%)</div>
+      <div class="val" style="color:${danger>0?'var(--red)':'var(--green)'}">⚠️ ${danger}</div></div>
   `;
+}
+
+function togglePwVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  inp.type  = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+async function doChangePassword() {
+  const np  = document.getElementById('newPass').value;
+  const np2 = document.getElementById('newPass2').value;
+  hideAlert('pwAlert');
+  if (np.length < 6)  { showAlert('pwAlert','⚠️ Password must be at least 6 characters.'); return; }
+  if (np !== np2)     { showAlert('pwAlert','⚠️ Passwords do not match.'); return; }
+  // Call backend to update password
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ newPassword: np })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    showAlert('pwAlert','✅ Password updated successfully!','success');
+    document.getElementById('newPass').value  = '';
+    document.getElementById('newPass2').value = '';
+    setTimeout(() => hideAlert('pwAlert'), 3000);
+  } catch(err) {
+    showAlert('pwAlert','❌ ' + (err.message || 'Failed to update password.'));
+  }
+}
+
+async function confirmClearCourses() {
+  if (!confirm('⚠️ This will delete ALL your courses permanently. Are you sure?')) return;
+  try {
+    const courses = getCourses();
+    await Promise.all(courses.map(c => apiDeleteCourse(c._id || c.id)));
+    await refreshCourses();
+    showAlert('pwAlert','✅ All courses cleared.','success');
+    navTo('dashboard');
+  } catch(err) {
+    showAlert('pwAlert','❌ Failed to clear courses: ' + err.message);
+  }
 }
 </script>
 </body>
