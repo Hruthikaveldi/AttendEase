@@ -142,4 +142,6 @@ function renderCourseList(courses) {
   } else {
     el.innerHTML = courses.map(buildCourseCard).join('');
   }
+  // ADD THIS LINE:
+  if (typeof populateBunkDropdown === 'function') populateBunkDropdown(courses || []);
 }
