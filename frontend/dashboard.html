@@ -308,7 +308,7 @@ function navTo(page) {
   if (page === 'dashboard') renderDashboard();
   if (page === 'analytics') renderAnalyticsPage();
   if (page === 'profile')   renderProfile();
-  if (page === 'courses')   renderCourseList();
+  if (page === 'courses')   refreshCourses();
 
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 }
