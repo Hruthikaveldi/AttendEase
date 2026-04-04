@@ -81,4 +81,25 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
+
+// ── POST /api/auth/change-password ──
+router.post('/change-password', protect, async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6)
+      return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    user.password = newPassword; // pre-save hook will hash it
+    await user.save();
+
+    res.json({ message: 'Password updated successfully!' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 module.exports = router;
