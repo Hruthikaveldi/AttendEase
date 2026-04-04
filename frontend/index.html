@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AttendEase – Login</title>
   <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <style>
     body {
       display: flex; align-items: center; justify-content: center;
@@ -43,11 +44,66 @@
     }
     .auth-note span { color: var(--accent); cursor: pointer; font-weight: 600; }
     .auth-note span:hover { text-decoration: underline; }
+
+    /* ── PASSWORD FIELD WITH TOGGLE ── */
+    .pass-wrap {
+      position: relative;
+    }
+    .pass-wrap input {
+      width: 100%; padding-right: 44px; box-sizing: border-box;
+    }
+    .pass-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 18px; padding: 0; line-height: 1;
+      transition: color .2s;
+    }
+    .pass-toggle:hover { color: var(--accent); }
+
+    /* ── PASSWORD STRENGTH ── */
+    .strength-bar {
+      display: flex; gap: 4px; margin-top: 6px;
+    }
+    .strength-seg {
+      flex: 1; height: 3px; border-radius: 99px;
+      background: var(--border); transition: background .3s;
+    }
+    .strength-label {
+      font-size: 11px; color: var(--muted); margin-top: 4px; min-height: 14px;
+    }
+
+    /* ── CAPTCHA WRAPPER ── */
+    .captcha-wrap {
+      margin: 16px 0;
+      display: flex; justify-content: center;
+    }
+
+    /* ── DIVIDER ── */
+    .auth-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 16px 0; color: var(--muted); font-size: 12px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── FORGOT PASSWORD ── */
+    .forgot-link {
+      text-align: right; margin-top: -8px; margin-bottom: 14px;
+    }
+    .forgot-link span {
+      font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 600;
+    }
+    .forgot-link span:hover { text-decoration: underline; }
+
+    /* recaptcha dark mode fix */
+    [data-theme="dark"] .g-recaptcha iframe {
+      filter: invert(0.9) hue-rotate(180deg);
+    }
   </style>
 </head>
 <body>
 
-  <!-- Theme toggle -->
   <button class="theme-btn" id="themeBtn">🌙</button>
 
   <div class="auth-box anim-fadeup">
@@ -66,39 +122,67 @@
     <!-- Alert -->
     <div id="authAlert" class="alert-box error"></div>
 
-    <!-- LOGIN FORM -->
+    <!-- ══ LOGIN FORM ══ -->
     <div id="loginForm">
       <div class="field-group">
         <label>Email Address</label>
-        <input type="email" id="loginEmail" placeholder="you@email.com"/>
+        <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email"/>
       </div>
       <div class="field-group">
         <label>Password</label>
-        <input type="password" id="loginPass" placeholder="••••••••"/>
+        <div class="pass-wrap">
+          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+          <button class="pass-toggle" type="button" onclick="togglePass('loginPass', this)" tabindex="-1">👁️</button>
+        </div>
       </div>
-      <button class="btn-primary full" onclick="doLogin()">Login →</button>
+      <div class="forgot-link">
+        <span onclick="showForgot()">Forgot password?</span>
+      </div>
+      <button class="btn-primary full" id="loginBtn" onclick="doLogin()">Login →</button>
       <p class="auth-note">No account? <span onclick="switchTab('register')">Register here</span></p>
     </div>
 
-    <!-- REGISTER FORM -->
+    <!-- ══ REGISTER FORM ══ -->
     <div id="registerForm" style="display:none;">
       <div class="field-group">
         <label>Full Name</label>
-        <input type="text" id="regName" placeholder="Your full name"/>
+        <input type="text" id="regName" placeholder="Your full name" autocomplete="name"/>
       </div>
       <div class="field-group">
         <label>Email Address</label>
-        <input type="email" id="regEmail" placeholder="you@email.com"/>
+        <input type="email" id="regEmail" placeholder="you@email.com" autocomplete="email"/>
       </div>
       <div class="field-group">
         <label>Password</label>
-        <input type="password" id="regPass" placeholder="Min 6 characters"/>
+        <div class="pass-wrap">
+          <input type="password" id="regPass" placeholder="Min 6 characters" autocomplete="new-password" oninput="checkStrength(this.value)"/>
+          <button class="pass-toggle" type="button" onclick="togglePass('regPass', this)" tabindex="-1">👁️</button>
+        </div>
+        <div class="strength-bar">
+          <div class="strength-seg" id="seg1"></div>
+          <div class="strength-seg" id="seg2"></div>
+          <div class="strength-seg" id="seg3"></div>
+          <div class="strength-seg" id="seg4"></div>
+        </div>
+        <div class="strength-label" id="strengthLabel"></div>
       </div>
       <div class="field-group">
         <label>Confirm Password</label>
-        <input type="password" id="regPass2" placeholder="Repeat password"/>
+        <div class="pass-wrap">
+          <input type="password" id="regPass2" placeholder="Repeat password" autocomplete="new-password"/>
+          <button class="pass-toggle" type="button" onclick="togglePass('regPass2', this)" tabindex="-1">👁️</button>
+        </div>
       </div>
-      <button class="btn-primary full" onclick="doRegister()">Create Account →</button>
+
+      <!-- Google reCAPTCHA v2 -->
+      <div class="captcha-wrap">
+        <div class="g-recaptcha"
+             data-sitekey="6LeVFqYsAAAAALZHTAV1YMFvERfiNSLKr2d5yBQ7"
+             data-theme="dark">
+        </div>
+      </div>
+
+      <button class="btn-primary full" id="registerBtn" onclick="doRegister()">Create Account →</button>
       <p class="auth-note">Have an account? <span onclick="switchTab('login')">Login</span></p>
     </div>
 
@@ -106,5 +190,48 @@
 
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>
+  <script>
+    // ── SHOW/HIDE PASSWORD ──
+    function togglePass(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
+    }
+
+    // ── PASSWORD STRENGTH ──
+    function checkStrength(val) {
+      const segs  = [document.getElementById('seg1'), document.getElementById('seg2'),
+                     document.getElementById('seg3'), document.getElementById('seg4')];
+      const label = document.getElementById('strengthLabel');
+      let score = 0;
+      if (val.length >= 6)  score++;
+      if (val.length >= 10) score++;
+      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+      if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) score++;
+
+      const colors = ['#f25c69','#f4845f','#f9c74f','#00d4aa'];
+      const labels = ['','Weak','Fair','Good','Strong'];
+      segs.forEach((s, i) => {
+        s.style.background = i < score ? colors[score - 1] : 'var(--border)';
+      });
+      label.textContent = val.length > 0 ? labels[score] : '';
+      label.style.color  = score > 0 ? colors[score - 1] : 'var(--muted)';
+    }
+
+    // ── FORGOT PASSWORD ──
+    function showForgot() {
+      const email = (document.getElementById('loginEmail').value || '').trim();
+      if (!email || !email.includes('@')) {
+        showAlert('authAlert', '⚠️ Enter your email above first, then click Forgot password.');
+        return;
+      }
+      showAlert('authAlert', '📧 Password reset is not yet implemented. Please contact support or re-register.', 'success');
+    }
+  </script>
 </body>
 </html>

@@ -1,6 +1,5 @@
 // ═══════════════════════════════════
 //   ATTENDEASE — auth.js
-//   Connects to Node.js backend
 // ═══════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -26,16 +25,19 @@ document.addEventListener('DOMContentLoaded', function () {
     hideAlert('authAlert');
     const email    = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
     const password = (document.getElementById('loginPass').value  || '');
-    if (!email || !password) { showAlert('authAlert','Please fill in all fields.'); return; }
 
-    const btn = document.querySelector('#loginForm .btn-primary');
-    btn.textContent = 'Logging in...'; btn.disabled = true;
+    if (!email)    { showAlert('authAlert','⚠️ Please enter your email.'); return; }
+    if (!password) { showAlert('authAlert','⚠️ Please enter your password.'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    btn.textContent = '⏳ Logging in...'; btn.disabled = true;
 
     try {
       await apiLogin(email, password);
-      window.location.href = 'dashboard.html';
+      btn.textContent = '✅ Success!';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 300);
     } catch(err) {
-      showAlert('authAlert', err.message || 'Login failed. Is the backend running?');
+      showAlert('authAlert', '❌ ' + (err.message || 'Login failed. Check your credentials.'));
       btn.textContent = 'Login →'; btn.disabled = false;
     }
   };
@@ -48,24 +50,35 @@ document.addEventListener('DOMContentLoaded', function () {
     const password = (document.getElementById('regPass').value   || '');
     const pass2    = (document.getElementById('regPass2').value  || '');
 
-    if (!name)                         { showAlert('authAlert','Please enter your name.'); return; }
-    if (!email || !email.includes('@')){ showAlert('authAlert','Please enter a valid email.'); return; }
-    if (password.length < 6)           { showAlert('authAlert','Password must be at least 6 characters.'); return; }
-    if (password !== pass2)            { showAlert('authAlert','Passwords do not match.'); return; }
+    // Validate fields
+    if (!name)                          { showAlert('authAlert','⚠️ Please enter your full name.'); return; }
+    if (!email || !email.includes('@')) { showAlert('authAlert','⚠️ Please enter a valid email.'); return; }
+    if (password.length < 6)            { showAlert('authAlert','⚠️ Password must be at least 6 characters.'); return; }
+    if (password !== pass2)             { showAlert('authAlert','⚠️ Passwords do not match.'); return; }
 
-    const btn = document.querySelector('#registerForm .btn-primary');
-    btn.textContent = 'Creating account...'; btn.disabled = true;
+    // Validate captcha
+    const captchaResponse = grecaptcha.getResponse();
+    if (!captchaResponse) {
+      showAlert('authAlert', '⚠️ Please complete the CAPTCHA verification.');
+      return;
+    }
+
+    const btn = document.getElementById('registerBtn');
+    btn.textContent = '⏳ Creating account...'; btn.disabled = true;
 
     try {
       await apiRegister(name, email, password);
-      window.location.href = 'dashboard.html';
+      btn.textContent = '✅ Account created!';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 300);
     } catch(err) {
-      showAlert('authAlert', err.message || 'Registration failed. Is the backend running?');
+      showAlert('authAlert', '❌ ' + (err.message || 'Registration failed.'));
       btn.textContent = 'Create Account →'; btn.disabled = false;
+      grecaptcha.reset();
     }
   };
 
-  // ── ENTER KEY ──
-  document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-  document.getElementById('regPass2').addEventListener('keydown',  e => { if(e.key==='Enter') doRegister(); });
+  // ── ENTER KEY SUPPORT ──
+  document.getElementById('loginPass').addEventListener('keydown',  e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('regPass2').addEventListener('keydown',   e => { if(e.key==='Enter') doRegister(); });
+  document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('loginPass').focus(); });
 });
