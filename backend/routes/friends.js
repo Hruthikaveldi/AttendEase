@@ -35,8 +35,13 @@ router.get('/', async (req, res) => {
           overallPct,
           safeCourses,
           courses: courses.map(c => ({
-            name:     c.name,
-            pctTotal: c.total > 0 ? parseFloat((c.attended / c.total * 100).toFixed(1)) : 0,
+            name:      c.name,
+            total:     c.total,
+            held:      c.held,
+            attended:  c.attended,
+            remaining: c.total - c.held,
+            pctHeld:   c.held  > 0 ? parseFloat((c.attended / c.held  * 100).toFixed(1)) : 0,
+            pctTotal:  c.total > 0 ? parseFloat((c.attended / c.total * 100).toFixed(1)) : 0,
           })),
         };
       })
