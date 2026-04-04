@@ -144,6 +144,36 @@
         <div id="courseAlert" class="alert-box error"></div>
       </div>
 
+      <!-- ── BUNK PLANNER ── -->
+      <div class="section-card" id="bunkPlannerCard" style="margin-bottom:20px;">
+        <div class="section-title"><span class="dot"></span>🎯 Bunk Planner</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Want to skip some classes? Check if it's safe first!</p>
+        <div class="course-form-grid" style="grid-template-columns:1fr 1fr auto;align-items:end;gap:12px;">
+          <div class="field-group" style="margin-bottom:0;">
+            <label>Select Course</label>
+            <select id="bunkCourse" onchange="runBunkPlanner()" style="
+              width:100%;background:var(--surface);border:1.5px solid var(--border);
+              border-radius:11px;padding:11px 16px;color:var(--text);
+              font-family:'Plus Jakarta Sans',sans-serif;font-size:.95rem;outline:none;">
+              <option value="">-- Pick a course --</option>
+            </select>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label>Classes to Bunk</label>
+            <input type="number" id="bunkCount" min="1" placeholder="e.g. 3"
+              oninput="runBunkPlanner()"
+              style="width:100%;box-sizing:border-box;"/>
+          </div>
+          <div style="padding-bottom:2px;">
+            <button class="btn-primary" onclick="runBunkPlanner()">Check ✓</button>
+          </div>
+        </div>
+        <div id="bunkResult" style="margin-top:16px;display:none;
+          border-radius:14px;padding:18px 20px;border:1px solid var(--border);
+          background:var(--surface);transition:all .3s;">
+        </div>
+      </div>
+
       <!-- Course List -->
       <div id="courseListEl">
         <div class="empty-state">
@@ -308,7 +338,7 @@ function navTo(page) {
   if (page === 'dashboard') renderDashboard();
   if (page === 'analytics') renderAnalyticsPage();
   if (page === 'profile')   renderProfile();
-  if (page === 'courses')   refreshCourses();
+  if (page === 'courses')   renderCourseList();
 
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 }
@@ -387,6 +417,89 @@ function renderAnalyticsPage() {
       <td style="color:${statusClr};font-weight:600;">${statusTxt}</td>
     </tr>`;
   }).join('');
+}
+
+/* ── BUNK PLANNER ── */
+function populateBunkDropdown(courses) {
+  const sel = document.getElementById('bunkCourse');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">-- Pick a course --</option>' +
+    courses.map(c => `<option value="${c._id||c.id}">${c.name}</option>`).join('');
+  if (prev) sel.value = prev;
+}
+
+function runBunkPlanner() {
+  const sel     = document.getElementById('bunkCourse');
+  const bunkN   = parseInt(document.getElementById('bunkCount').value) || 0;
+  const result  = document.getElementById('bunkResult');
+  const courses = getCourses();
+
+  if (!sel.value || bunkN < 1) { result.style.display='none'; return; }
+
+  const c = courses.find(x => (x._id||x.id) === sel.value);
+  if (!c) return;
+
+  const s = calcStats(c);
+
+  // After bunking bunkN classes:
+  // attended stays same, held increases by bunkN (those classes happened but skipped)
+  const newHeld     = c.held + bunkN;
+  const newPctHeld  = newHeld > 0 ? (c.attended / newHeld * 100) : 0;
+  const newRemaining = Math.max(0, s.remaining - bunkN);
+
+  // Can they still recover? Min classes needed to get back to 75% after bunking
+  // (attended + x) / (newHeld + x) >= 0.75
+  const minToRecover = Math.max(0, Math.ceil((0.75 * newHeld - c.attended) / 0.25));
+  const canRecover   = minToRecover <= newRemaining;
+
+  result.style.display = 'block';
+
+  let icon, color, border, title, body;
+
+  if (newPctHeld >= 75) {
+    // Still safe even after bunking
+    icon   = '✅';
+    color  = 'rgba(0,212,170,.08)';
+    border = 'rgba(0,212,170,.3)';
+    title  = `<span style="color:var(--green)">Safe to bunk ${bunkN} class${bunkN>1?'es':''}!</span>`;
+    body   = `Your attendance will be <strong style="color:var(--green)">${newPctHeld.toFixed(1)}%</strong> by held — still above 75%. 
+              You have <strong>${newRemaining}</strong> class${newRemaining!==1?'es':''} remaining after this.`;
+  } else if (canRecover) {
+    // Drops below 75% but can recover
+    icon   = '⚠️';
+    color  = 'rgba(249,199,79,.08)';
+    border = 'rgba(249,199,79,.3)';
+    title  = `<span style="color:var(--yellow)">Risky! Attendance drops to ${newPctHeld.toFixed(1)}%</span>`;
+    body   = `You'll fall below 75% but can recover by attending 
+              <strong style="color:var(--yellow)">${minToRecover} of the ${newRemaining} remaining</strong> classes.`;
+  } else {
+    // Cannot recover
+    icon   = '🚨';
+    color  = 'rgba(242,92,105,.08)';
+    border = 'rgba(242,92,105,.3)';
+    title  = `<span style="color:var(--red)">Danger! Cannot recover after bunking ${bunkN}</span>`;
+    const maxPossible = newRemaining > 0 
+      ? ((c.attended + newRemaining) / (newHeld + newRemaining) * 100).toFixed(1)
+      : newPctHeld.toFixed(1);
+    body   = `Even attending ALL ${newRemaining} remaining classes, max possible is 
+              <strong style="color:var(--red)">${maxPossible}%</strong>. Do NOT bunk these!`;
+  }
+
+  result.style.background = color;
+  result.style.borderColor = border;
+  result.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:22px">${icon}</span>
+      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;">${title}</div>
+    </div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;">${body}</div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+      display:flex;gap:20px;font-size:12px;color:var(--muted);">
+      <span>Current: <strong style="color:var(--text)">${s.pctHeld.toFixed(1)}%</strong></span>
+      <span>After bunking: <strong style="color:var(--text)">${newPctHeld.toFixed(1)}%</strong></span>
+      <span>Remaining classes: <strong style="color:var(--text)">${newRemaining}</strong></span>
+    </div>`;
 }
 
 /* ── RENDER PROFILE ── */
