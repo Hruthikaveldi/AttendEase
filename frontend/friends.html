@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AttendEase – Friends</title>
   <link rel="stylesheet" href="css/style.css"/>
-  <link rel="stylesheet" href="css/themes.css"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
   <style>
     /* ── FRIENDS PAGE SPECIFIC ── */
@@ -208,7 +207,7 @@
 </head>
 <body>
 
-<button class="theme-btn" id="themeBtn">🎨</button>
+<button class="theme-btn" id="themeBtn">🌙</button>
 
 <!-- ── TOPBAR ── -->
 <div class="topbar">
@@ -399,7 +398,7 @@ let backendOnline = false;
 // ── BOOT ──
 document.addEventListener('DOMContentLoaded', async function () {
   applyTheme();
-  document.getElementById('themeBtn').addEventListener('click', openThemePanel);
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
   document.getElementById('hamburger').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('open');
   });
@@ -605,17 +604,43 @@ function openFriendModal(f) {
     coursesEl.innerHTML = '<p style="color:var(--muted);font-size:13px;">No course data available.</p>';
   } else {
     coursesEl.innerHTML = f.courses.map(c => {
-      const pctClr = c.pctTotal >= 75 ? 'var(--green)' : c.pctTotal >= 60 ? 'var(--yellow)' : 'var(--red)';
-      const barClr = c.pctTotal >= 75 ? 'linear-gradient(90deg,#00d4aa,#3d8ef8)' : c.pctTotal >= 60 ? 'linear-gradient(90deg,#f9c74f,#f4845f)' : 'linear-gradient(90deg,#f25c69,#f4845f)';
+      // Use pctHeld if available (real backend data), fallback to pctTotal (demo)
+      const pct    = c.pctHeld !== undefined ? c.pctHeld : c.pctTotal;
+      const pctClr = pct >= 75 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      const barClr = pct >= 75 ? 'linear-gradient(90deg,#00d4aa,#3d8ef8)' : pct >= 60 ? 'linear-gradient(90deg,#f9c74f,#f4845f)' : 'linear-gradient(90deg,#f25c69,#f4845f)';
+
+      // Bunk calculation (same logic as bunk planner)
+      let bunkMsg = '';
+      if (c.held !== undefined && c.remaining !== undefined) {
+        const minNeeded = Math.max(0, Math.ceil((0.75 * c.held - c.attended) / 0.25));
+        const canBunk   = Math.max(0, c.remaining - minNeeded);
+        const maxPctHeld = (c.held + c.remaining) > 0
+          ? ((c.attended + c.remaining) / (c.held + c.remaining) * 100) : 0;
+
+        if (c.remaining === 0) {
+          bunkMsg = `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Semester complete</div>`;
+        } else if (pct >= 75) {
+          if (canBunk > 0)
+            bunkMsg = `<div style="font-size:11px;color:var(--green);margin-top:4px;">✅ Can bunk ${canBunk} more class${canBunk>1?'es':''}</div>`;
+          else
+            bunkMsg = `<div style="font-size:11px;color:var(--yellow);margin-top:4px;">⚠️ Must attend all remaining</div>`;
+        } else if (maxPctHeld < 75) {
+          bunkMsg = `<div style="font-size:11px;color:var(--red);margin-top:4px;">🚨 Cannot reach 75% even attending all</div>`;
+        } else {
+          bunkMsg = `<div style="font-size:11px;color:var(--yellow);margin-top:4px;">⚠️ Must attend ${minNeeded} more to reach 75%</div>`;
+        }
+      }
+
       return `
-      <div class="course-row">
+      <div class="course-row" style="flex-wrap:wrap;gap:4px;">
         <div class="course-row-name">${c.name}</div>
         <div class="course-row-bar">
           <div class="lb-prog-wrap">
-            <div class="lb-prog-fill" style="width:${Math.min(c.pctTotal,100)}%;background:${barClr}"></div>
+            <div class="lb-prog-fill" style="width:${Math.min(pct,100)}%;background:${barClr}"></div>
           </div>
         </div>
-        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:${pctClr};min-width:38px;text-align:right;">${c.pctTotal}%</div>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:${pctClr};min-width:38px;text-align:right;">${pct}%</div>
+        <div style="width:100%;padding-left:4px;">${bunkMsg}</div>
       </div>`;
     }).join('');
   }
