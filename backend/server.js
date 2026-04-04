@@ -5,43 +5,27 @@ require('dotenv').config();
 const express   = require('express');
 const mongoose  = require('mongoose');
 const cors      = require('cors');
+const path      = require('path');
 
 const app = express();
 
 // ── MIDDLEWARE ──
-// Allow both localhost variants that VS Code Live Server uses
-const allowedOrigins = [
-  'http://127.0.0.1:5500',
-  'http://localhost:5500',
-  'http://127.0.0.1:5501',
-  'http://localhost:5501',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (e.g. mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    console.warn('CORS blocked origin:', origin);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
-
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 
-// ── ROUTES ──
+// ── API ROUTES ──
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/courses',   require('./routes/courses'));
 app.use('/api/timetable', require('./routes/timetable'));
 app.use('/api/friends',   require('./routes/friends'));
 
-// ── HEALTH CHECK ──
-app.get('/', (req, res) => {
-  res.json({ message: '🎓 AttendEase API is running!', status: 'OK' });
+// ── SERVE FRONTEND STATIC FILES ──
+// Goes up one level from backend/ to reach frontend/
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+// ── CATCH-ALL: serve index.html for any unknown route ──
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
 // ── CONNECT TO MONGODB & START SERVER ──
@@ -51,8 +35,8 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected!');
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`🌐 Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌐 Frontend served at http://localhost:${PORT}`);
     });
   })
   .catch(err => {

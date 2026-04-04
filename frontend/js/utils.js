@@ -3,7 +3,9 @@
 //   Shared helpers + API layer
 // ═══════════════════════════════
 
-const API_URL = 'https://attendease-f10h.onrender.com/api';
+// Since frontend and backend are served from the same domain,
+// we use a relative URL — works both locally and on Render!
+const API_URL = '/api';
 
 const PALETTE = [
   ['#3d8ef8','#6c5ce7'],
