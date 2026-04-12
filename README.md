@@ -4,6 +4,7 @@
 
 🌐 **Live Demo:** https://attendease-f10h.onrender.com  
 🐙 **GitHub:** https://github.com/Hruthikaveldi/AttendEase
+💻 **Ppt:** https://github.com/Hruthikaveldi/AttendEase-ppt
 
 ---
 
